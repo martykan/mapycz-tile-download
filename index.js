@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const sharp = require("sharp");
 const https = require("https");
 const fs = require("fs");
@@ -102,11 +104,11 @@ async function downloadMapyCzTiles(
 function printUsage() {
   console.log("Usage: ");
   console.log(
-    "$ npx mapycz-tile-downloader <output dir> <zoom level> <from lat> <from long> <to lat> <to long>"
+    "$ npx mapycz-tile-downl <output dir> <zoom level> <from lat> <from long> <to lat> <to long>"
   );
   console.log("Example: ");
   console.log(
-    "$ npx mapycz-tile-downloader tiles/ 18 49.199381 16.601219 49.192088 16.613920"
+    "$ npx mapycz-tile-downl tiles/ 18 49.199381 16.601219 49.192088 16.613920"
   );
 }
 
@@ -121,7 +123,7 @@ function validateArgs(args) {
     return false;
   }
 
-  var dir = join(__dirname, args[0] + "/");
+  var dir = join(process.cwd(), args[0] + "/");
   var zoom = Number.parseInt(args[1]);
   var fromLat = Number.parseFloat(args[2]);
   var fromLong = Number.parseFloat(args[3]);

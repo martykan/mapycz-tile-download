@@ -12,13 +12,13 @@ License information is available here: https://napoveda.seznam.cz/cz/mapy/mapy-l
 Requires Node.js.
 
 ```
-$ npx mapycz-tile-downloader <output dir> <zoom level> <from lat> <from long> <to lat> <to long>
+$ npx mapycz-tile-downl <output dir> <zoom level> <from lat> <from long> <to lat> <to long>
 ```
 Zoom level can be up to 20. An output directory is needed to save interim files. 
 
 Example: 
 ```
-$ npx mapycz-tile-downloader tiles/ 18 49.199381 16.601219 49.192088 16.613920
+$ npx mapycz-tile-downl tiles/ 18 49.199381 16.601219 49.192088 16.613920
 ```
 
 ## License (MIT)
