@@ -30,6 +30,9 @@ async function downloadTile(dir, zoom, x, y) {
     const url = "https://mapserver.mapy.cz/bing/" + zoom + "-" + x + "-" + y;
     const file = fs.createWriteStream(filename);
     https.get(url, res => {
+      if(res.statusCode != 200) {
+        reject("Cannot GET tile " + url);
+      }
       res.pipe(file);
       file.on("finish", () => {
         resolve(filename);
@@ -77,6 +80,17 @@ async function downloadMapyCzTiles(
   var fromY = lat2tile(zoom, fromLat);
   var toX = long2tile(zoom, toLong);
   var toY = lat2tile(zoom, toLat);
+  if(fromX > toX) {
+    var tmp = toX;
+    toX = fromX;
+    fromX = tmp;
+  }
+  if(fromY > toY) {
+    var tmp = toY;
+    toY = fromY;
+    fromY = tmp;
+  }
+  console.log(`Coords from ${fromX}, ${fromY} to ${toX}, ${toY}`);
   const xCount = toX - fromX;
   const yCount = toY - fromY;
   const tileSize = 256;
@@ -85,10 +99,15 @@ async function downloadMapyCzTiles(
   for (var y = 0; y < yCount; y++) {
     const tiles = [];
     for (var x = 0; x < xCount; x++) {
-      const file = await downloadTile(dir, zoom, fromX + x, fromY + y);
-      console.log("Downloaded " + file);
-      cleanupList.push(file);
-      tiles.push({ x, y: 0, file });
+      try {
+        const file = await downloadTile(dir, zoom, fromX + x, fromY + y);
+        console.log("Downloaded " + file);
+        cleanupList.push(file);
+        tiles.push({ x, y: 0, file });
+      } catch(error) {
+        console.log(error);
+        return;
+      }
     }
     const rowFile = join(dir, "row-" + y + ".png");
     cleanupList.push(rowFile);
@@ -138,3 +157,4 @@ if (args.length != 6 || !validateArgs(args)) {
   printUsage();
   return;
 }
+
