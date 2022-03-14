@@ -21,23 +21,60 @@ function lat2tile(zoom, lat) {
   );
 }
 
+function getApiKey() {
+  // Based on SMap.getSDKHeaderValue
+  var data = ["mapyapi", "Armstrong", (Date.now() / 1e3) >>> 0].join(",");
+  var xor_value = [];
+  var max = data.length,
+    keyMax = 3,
+    ptr = 0;
+  for (var i = 0; i < max; i++) {
+    var dataChar = data[i].charCodeAt(0);
+    var keyChar = "sdk"[ptr].charCodeAt(0);
+    xor_value.push(String.fromCharCode(dataChar ^ keyChar));
+    ptr++;
+    if (ptr == keyMax) {
+      ptr = 0;
+    }
+  }
+  return btoa(xor_value.join(""));
+}
+
 async function downloadTile(dir, zoom, x, y) {
   const filename = join(dir, x + "-" + y + ".png");
   if (fs.existsSync(filename)) {
     return filename;
   }
   return await new Promise((resolve, reject) => {
-    const url = "https://mapserver.mapy.cz/bing/" + zoom + "-" + x + "-" + y;
+    const url =
+      "https://mapserver.mapy.cz/bing/" +
+      zoom +
+      "-" +
+      x +
+      "-" +
+      y +
+      "?key=" +
+      encodeURIComponent(getApiKey());
     const file = fs.createWriteStream(filename);
-    https.get(url, res => {
-      if(res.statusCode != 200) {
-        reject("Cannot GET tile " + url);
+    https.get(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36",
+          Referer: "https://www.mapy.cz/",
+        },
+      },
+      (res) => {
+        if (res.statusCode != 200) {
+          reject("Cannot GET tile " + url);
+        }
+        res.pipe(file);
+        file.on("finish", () => {
+          resolve(filename);
+        });
       }
-      res.pipe(file);
-      file.on("finish", () => {
-        resolve(filename);
-      });
-    });
+    );
   });
 }
 
@@ -45,7 +82,7 @@ async function composite(dest, tiles, tileSize, xCount, yCount) {
   const toCompositeOp = ({ x, y, file }) => ({
     input: file,
     top: y * tileSize,
-    left: x * tileSize
+    left: x * tileSize,
   });
   try {
     const { channels } = await sharp(tiles[0].file).metadata();
@@ -54,8 +91,8 @@ async function composite(dest, tiles, tileSize, xCount, yCount) {
         width: tileSize * xCount,
         height: tileSize * yCount,
         channels,
-        background: { r: 255, g: 255, b: 255 }
-      }
+        background: { r: 255, g: 255, b: 255 },
+      },
     })
       .composite(tiles.map(toCompositeOp))
       .png()
@@ -80,12 +117,12 @@ async function downloadMapyCzTiles(
   var fromY = lat2tile(zoom, fromLat);
   var toX = long2tile(zoom, toLong);
   var toY = lat2tile(zoom, toLat);
-  if(fromX > toX) {
+  if (fromX > toX) {
     var tmp = toX;
     toX = fromX;
     fromX = tmp;
   }
-  if(fromY > toY) {
+  if (fromY > toY) {
     var tmp = toY;
     toY = fromY;
     fromY = tmp;
@@ -104,7 +141,7 @@ async function downloadMapyCzTiles(
         console.log("Downloaded " + file);
         cleanupList.push(file);
         tiles.push({ x, y: 0, file });
-      } catch(error) {
+      } catch (error) {
         console.log(error);
         return;
       }
@@ -117,7 +154,7 @@ async function downloadMapyCzTiles(
   }
   await composite(join(dir, "output.png"), rows, tileSize, xCount, yCount);
   console.log("Output saved");
-  cleanupList.forEach(file => fs.unlinkSync(file));
+  cleanupList.forEach((file) => fs.unlinkSync(file));
 }
 
 function printUsage() {
@@ -157,4 +194,3 @@ if (args.length != 6 || !validateArgs(args)) {
   printUsage();
   return;
 }
-
